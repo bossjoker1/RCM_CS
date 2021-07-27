@@ -13,9 +13,11 @@ func InitRouter() *gin.Engine {
 
 	r.POST("/upload", APIs.UploadByJson)
 
-	r.GET("/downloadfile/:filename", APIs.DownloadHandler)
+	//r.GET("/downloadfile/:filename", APIs.DownloadHandler)
 
 	r.GET("/download", APIs.Download)
+
+	r.PUT("/update", APIs.UpdateField)
 
 	return r
 }
