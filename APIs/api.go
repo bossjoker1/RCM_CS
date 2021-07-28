@@ -153,11 +153,6 @@ func Pull(c *gin.Context) {
 		return
 	}
 
-	//for _, s := range req.Pull{
-	//	fmt.Println(s)
-	//	fmt.Println(s == "FirstName")
-	//}
-
 	// 读配置文件信息
 	dst := ".\\files\\" + req.Uid + ".json"
 
@@ -173,6 +168,10 @@ func Pull(c *gin.Context) {
 
 	if err != nil {
 		log.Printf("unmarshal the data failed. %v\n", err)
+		c.JSON(http.StatusOK, gin.H{
+			"code": 400,
+			"msg":  "we can not find the special file.",
+		})
 		return
 	}
 
@@ -180,6 +179,10 @@ func Pull(c *gin.Context) {
 	db, err := bolt.Open(Utils.PULLFILE, 0644, nil)
 	if err != nil {
 		log.Printf("open or create  the db error. %v\n", err)
+		c.JSON(http.StatusOK, gin.H{
+			"code": 400,
+			"msg":  "do not have the personalized pull_file.",
+		})
 		return
 	}
 
@@ -201,7 +204,7 @@ func Pull(c *gin.Context) {
 		if b != nil {
 			dataByte = b.Get([]byte(req.Uid))
 			pullfields := make(map[string]interface{})
-			if dataByte == nil {
+			if dataByte == nil || req.Pull != nil {
 				// 说明之前没有该用户的个性化参数
 				err = b.Put([]byte(req.Uid), Utils.Serialize(req.Pull))
 				if err != nil {
@@ -211,15 +214,9 @@ func Pull(c *gin.Context) {
 				for _, key := range req.Pull {
 					fmt.Println(key)
 					if _, ok := fileMap[key]; ok {
-						fmt.Println("get it")
 						pullfields[key] = fileMap[key]
 					}
 				}
-				c.JSON(http.StatusOK, gin.H{
-					"code":   200,
-					"info":   fmt.Sprintf("%v", pullfields),
-					"config": fmt.Sprintf("%s", fileBytes),
-				})
 
 			} else {
 				choice := Utils.Deserialize(dataByte)
@@ -228,13 +225,15 @@ func Pull(c *gin.Context) {
 						pullfields[key] = fileMap[key]
 					}
 				}
-				c.JSON(http.StatusOK, gin.H{
-					"code":   200,
-					"info":   fmt.Sprintf("%v", pullfields),
-					"config": fmt.Sprintf("%s", fileBytes),
-				})
 			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"code":   200,
+				"info":   fmt.Sprintf("%v", pullfields),
+				"config": fmt.Sprintf("%s", fileBytes),
+			})
 		}
+
 		return nil
 	})
 
