@@ -4,7 +4,7 @@ package Models
 
 type PerChoice struct {
 	// 用户id
-	Uid int64 `json:"uid"`
-	// 为了适应任意需求，这里采用的是动态类型
-	Request map[string]interface{} `json:"request"`
+	Uid string `json:"uid"`
+	// 字段名集合
+	Pull []string `json:"pull"`
 }

@@ -1,8 +1,11 @@
 package APIs
 
 import (
+	"RCM_CS/Models"
+	"RCM_CS/Utils"
 	"encoding/json"
 	"fmt"
+	"github.com/boltdb/bolt"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"log"
@@ -136,6 +139,105 @@ func UpdateField(c *gin.Context) {
 		"code": 200,
 		"msg":  fmt.Sprintf("%s have changed.", changed),
 	})
+}
+
+// 个性化拉取
+// 将用户的个性化参数持久化保存
+func Pull(c *gin.Context) {
+
+	var req Models.PerChoice
+
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		log.Printf("json bind failed. %v\n", err)
+		return
+	}
+
+	//for _, s := range req.Pull{
+	//	fmt.Println(s)
+	//	fmt.Println(s == "FirstName")
+	//}
+
+	// 读配置文件信息
+	dst := ".\\files\\" + req.Uid + ".json"
+
+	fileBytes, err := ioutil.ReadFile(dst)
+
+	if err != nil {
+		log.Printf("unable to read the file. %v\n", err)
+	}
+
+	var fileMap map[string]interface{}
+
+	err = json.Unmarshal(fileBytes, &fileMap)
+
+	if err != nil {
+		log.Printf("unmarshal the data failed. %v\n", err)
+		return
+	}
+
+	// 持久化个性参数数据
+	db, err := bolt.Open(Utils.PULLFILE, 0644, nil)
+	if err != nil {
+		log.Printf("open or create  the db error. %v\n", err)
+		return
+	}
+
+	defer db.Close() // 千万不能掉，否则连续请求就会失败
+
+	// 保存从数据库中读取的信息
+	var dataByte []byte
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(Utils.PULLBUCKET))
+		if b == nil {
+			// 说明整个服务器是第一次被传个性化参数
+			b, err = tx.CreateBucket([]byte(Utils.PULLBUCKET))
+			if err != nil {
+				log.Printf("Create the bucket failed. %v\n", err)
+			}
+		}
+
+		if b != nil {
+			dataByte = b.Get([]byte(req.Uid))
+			pullfields := make(map[string]interface{})
+			if dataByte == nil {
+				// 说明之前没有该用户的个性化参数
+				err = b.Put([]byte(req.Uid), Utils.Serialize(req.Pull))
+				if err != nil {
+					log.Printf("put the file into the db failed. %v\n", err)
+				}
+
+				for _, key := range req.Pull {
+					fmt.Println(key)
+					if _, ok := fileMap[key]; ok {
+						fmt.Println("get it")
+						pullfields[key] = fileMap[key]
+					}
+				}
+				c.JSON(http.StatusOK, gin.H{
+					"code":   200,
+					"info":   fmt.Sprintf("%v", pullfields),
+					"config": fmt.Sprintf("%s", fileBytes),
+				})
+
+			} else {
+				choice := Utils.Deserialize(dataByte)
+				for _, key := range choice {
+					if _, ok := fileMap[key]; ok {
+						pullfields[key] = fileMap[key]
+					}
+				}
+				c.JSON(http.StatusOK, gin.H{
+					"code":   200,
+					"info":   fmt.Sprintf("%v", pullfields),
+					"config": fmt.Sprintf("%s", fileBytes),
+				})
+			}
+		}
+		return nil
+	})
+
 }
 
 //func DownloadHandler(c *gin.Context) {

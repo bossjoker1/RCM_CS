@@ -17,6 +17,8 @@ func InitRouter() *gin.Engine {
 
 	r.GET("/download", APIs.Download)
 
+	r.GET("/pull", APIs.Pull)
+
 	r.PUT("/update", APIs.UpdateField)
 
 	return r
