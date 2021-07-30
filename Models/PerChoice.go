@@ -4,5 +4,5 @@ package Models
 
 type PersonalizedFields struct {
 	// 个性化拉取的字段
-	Fields []string
+	Fields []string `json:fields`
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -15,7 +16,7 @@ import (
 
 func UploadByProperties(c *gin.Context) {
 	// 获取客户端IP
-	//clientIP := c.ClientIP()
+	clientIP := c.ClientIP()
 	// 获取客户端port
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -27,8 +28,8 @@ func UploadByProperties(c *gin.Context) {
 		return
 	}
 	// 给对应用户创建个人配置文件的目录
-	_ = os.Mkdir(".\\files\\files1", 0666)
-	dst := fmt.Sprintf(".\\files\\files1\\" + file.Filename)
+	_ = os.Mkdir(".\\files\\"+clientIP, 0666)
+	dst := fmt.Sprintf(".\\files\\" + clientIP + "\\" + file.Filename)
 	// 保存properties文件
 	err = c.SaveUploadedFile(file, dst)
 
@@ -52,10 +53,15 @@ func PersonalizedUpdate(c *gin.Context) {
 	if err != nil {
 		log.Printf("bind the request json failed. %v\n", err)
 	}
+	// 获取客户端IP
+	clientIP := c.ClientIP()
 	// 读取文件配置
-	viper.SetConfigName("test")
+	// 这里认为每个目录对应一个配置文件
+	// 所以就取第一个文件为配置文件读取
+	files, _ := ioutil.ReadDir(".\\files\\" + clientIP)
+	viper.SetConfigName(files[0].Name())
 	viper.SetConfigType("properties")
-	viper.AddConfigPath(".\\files")
+	viper.AddConfigPath(".\\files\\" + clientIP)
 	err = viper.ReadInConfig()
 	if err != nil {
 		log.Printf("read the properties file failed. %v\n", err)
@@ -89,10 +95,15 @@ func PersonalizedPull(c *gin.Context) {
 		return
 	}
 
+	// 获取客户端IP
+	clientIP := c.ClientIP()
 	// 读取文件配置
-	viper.SetConfigName("test")
+	// 这里认为每个目录对应一个配置文件
+	// 所以就取第一个文件为配置文件读取
+	files, _ := ioutil.ReadDir(".\\files\\" + clientIP)
+	viper.SetConfigName(files[0].Name())
 	viper.SetConfigType("properties")
-	viper.AddConfigPath(".\\files")
+	viper.AddConfigPath(".\\files\\" + clientIP)
 	err = viper.ReadInConfig()
 	if err != nil {
 		log.Printf("read the properties file failed. %v\n", err)
@@ -131,11 +142,11 @@ func PersonalizedPull(c *gin.Context) {
 		}
 
 		if b != nil {
-			dataByte = b.Get([]byte("test"))
+			dataByte = b.Get([]byte(clientIP))
 			pullfields := make(map[string]interface{})
 			if dataByte == nil || req.Fields != nil {
 				// 说明之前没有该用户的个性化参数
-				err = b.Put([]byte("test"), Utils.Serialize(req.Fields))
+				err = b.Put([]byte(clientIP), Utils.Serialize(req.Fields))
 				if err != nil {
 					log.Printf("put the file into the db failed. %v\n", err)
 				}
@@ -171,7 +182,10 @@ func PersonalizedPull(c *gin.Context) {
 func DownloadHandler(c *gin.Context) {
 	filename := c.Param("filename")
 
-	_, err := os.Open(".\\files\\" + filename)
+	// 获取客户端IP
+	clientIP := c.ClientIP()
+
+	_, err := os.Open(".\\files\\" + clientIP + "\\" + filename)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError,
 			gin.H{
@@ -184,7 +198,7 @@ func DownloadHandler(c *gin.Context) {
 	c.Writer.Header().Add("Content-Type", "application/octet-stream")
 
 	// 浏览器下载文件
-	c.File(".\\files\\" + filename)
+	c.File(".\\files\\" + clientIP + "\\" + filename)
 
 	return
 
