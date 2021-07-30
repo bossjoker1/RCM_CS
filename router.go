@@ -9,17 +9,16 @@ func InitRouter() *gin.Engine {
 
 	r := gin.Default()
 
-	//r.POST("/uploadfile", APIs.UploadHandler)
+	// json数据上传后服务端写入创建文件
+	// 直接整个文件的上传和下载形式
 
-	r.POST("/upload", APIs.UploadByJson)
+	r.POST("/upload", APIs.UploadByProperties)
 
-	//r.GET("/downloadfile/:filename", APIs.DownloadHandler)
+	r.GET("/downloadfile/:filename", APIs.DownloadHandler)
 
-	r.GET("/download", APIs.Download)
+	r.GET("/pull", APIs.PersonalizedPull)
 
-	r.GET("/pull", APIs.Pull)
-
-	r.PUT("/update", APIs.UpdateField)
+	r.PUT("/update", APIs.PersonalizedUpdate)
 
 	return r
 }
