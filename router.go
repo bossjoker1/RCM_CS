@@ -14,7 +14,7 @@ func InitRouter() *gin.Engine {
 
 	r.POST("/upload", APIs.UploadByProperties)
 
-	r.GET("/downloadfile/:filename", APIs.DownloadHandler)
+	r.GET("/downloadfile", APIs.DownloadHandler)
 
 	r.GET("/pull", APIs.PersonalizedPull)
 
