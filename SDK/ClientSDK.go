@@ -28,7 +28,7 @@ type UidModel interface {
 func ClientSend(method string, router string, filePath string, model UidModel) []byte {
 	switch strings.ToLower(method) {
 	case "download":
-		err := DownloadFile(model.GetUid(), filePath, router)
+		err := DownloadFile(model.GetUid(), router)
 		if err != nil {
 			log.Printf("download the file failed. %v\n", err)
 		}
@@ -52,7 +52,10 @@ func ClientSend(method string, router string, filePath string, model UidModel) [
 			}
 		}
 	case "put":
-
+		err := UpdateConfigFile(model.GetUid(), router, model.Update())
+		if err != nil {
+			log.Printf("update the config file failed. %v\n", err)
+		}
 	default:
 		log.Println("unknown method.(GET/POST/PUT)")
 	}
@@ -142,8 +145,8 @@ func UpdateConfigFile(uid string, targetUrl string, fields map[string]interface{
 // 下载文件
 // 1. 传入uid参数和文件名称
 // 2. 没有uid，则通过文件名称，在default目录下找
-func DownloadFile(uid, fileName, targetUrl string) error {
-	if uid == "" && fileName == "" {
+func DownloadFile(uid, targetUrl string) error {
+	if uid == "" {
 		log.Printf("incorrect params.")
 		return nil
 	}
@@ -156,7 +159,6 @@ func DownloadFile(uid, fileName, targetUrl string) error {
 		return err
 	}
 	params.Set("uid", uid)
-	params.Set("filename", fileName)
 	//如果参数中有中文参数,这个方法会进行URLEncode
 	Url.RawQuery = params.Encode()
 	urlPath := Url.String()
